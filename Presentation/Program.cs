@@ -1,13 +1,13 @@
-var builder = WebApplication.CreateBuilder(args);
+using Application;
+using Domain;
+using Presentation;
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddApplication();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -22,23 +22,35 @@ var summaries = new[]
 };
 
 app.MapGet("/weatherforecast", () =>
+    {
+        var forecast = Enumerable.Range(1, 5).Select(index =>
+                new WeatherForecast
+                (
+                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+                    Random.Shared.Next(-20, 55),
+                    summaries[Random.Shared.Next(summaries.Length)]
+                ))
+            .ToArray();
+        return forecast;
+    })
+    .WithName("GetWeatherForecast")
+    .WithOpenApi();
+
+app.MapPost(Constantes.POST_USUARIO_PATH, async (CreateUser.IHandler handler, CancellationToken cancellationToken) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+    var command = new CreateUser.Command("email@email.com", "123456");
+    var response = await handler.HandleAsync(command, cancellationToken);
+    return response.IsSuccess
+        ? Results.Created(Constantes.GET_USUARIO_PATH, response.Value!.Id)
+        : Results.BadRequest(response.Error);
+});
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+
+namespace Presentation
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    public partial class Program
+    {
+    }
 }
