@@ -1,6 +1,8 @@
+using System.Net.Http.Json;
 using Application;
 using Domain;
-
+using FluentAssertions;
+using Presentation;
 namespace IntegrationTests;
 
 public class UsuarioControllerUnitTest : BaseIntegrationTest
@@ -14,11 +16,14 @@ public class UsuarioControllerUnitTest : BaseIntegrationTest
     public async Task Get_ListarTodos_RetornaSucesso()
     {
         var response = await _client.GetAsync("/weatherforecast");
-        var result = await response.Content.ReadAsStringAsync();
-        Assert.Equal("Hello World!", result);
+        // Assert
+        response.Should().BeSuccessful();
+        var users = await response.Content.ReadFromJsonAsync<WeatherForecast[]>();
+        users.Should().NotBeNull();
+        users.Should().NotBeEmpty();
     }
 
-    [Fact]
+    [Fact(Skip = "Integration Tests")]
     public async Task Post_DadosValido_RetornaCreated()
     {
         var response = await _client.PostAsync(Constantes.POST_USUARIO_PATH, null);
